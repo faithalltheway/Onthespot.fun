@@ -141,6 +141,19 @@ const EVENT_TEMPLATES: { title: string; category: string; description: string }[
 async function main() {
   console.log("Seeding OnTheSpot demo data…");
 
+  // Running as part of a Vercel build (see vercel.json's buildCommand)? Only
+  // seed an empty database — never wipe real data on a redeploy. Local
+  // `npm run db:seed` runs outside Vercel and keeps its existing
+  // wipe-and-reseed behavior for iterative dev.
+  if (process.env.VERCEL) {
+    const existingUsers = await db.user.count();
+    if (existingUsers > 0) {
+      console.log("Data already present — skipping seed (Vercel build).");
+      await db.$disconnect();
+      return;
+    }
+  }
+
   console.log("Clearing existing data…");
   await db.$transaction([
     db.auditLog.deleteMany(),
