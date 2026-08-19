@@ -5,17 +5,20 @@ import { cloudinaryConfigured } from "@/lib/cloudinary";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { SystemSettingsForm } from "./SystemSettingsForm";
+import { GoogleEventsSyncButton } from "./GoogleEventsSyncButton";
 
 export const metadata = { title: "System settings" };
 
 export default async function AdminSystemPage() {
   await requireRole("ADMIN");
   const settings = await getAllPlatformSettings();
+  const serpApiConfigured = Boolean(process.env.SERPAPI_KEY);
 
   const integrations = [
     { name: "Stripe (payments)", configured: stripeConfigured },
     { name: "Cloudinary (image storage)", configured: cloudinaryConfigured },
     { name: "Mapbox (maps)", configured: Boolean(process.env.NEXT_PUBLIC_MAPBOX_TOKEN) },
+    { name: "SerpApi (Google Events import)", configured: serpApiConfigured },
   ];
 
   return (
@@ -44,6 +47,15 @@ export default async function AdminSystemPage() {
         <p className="mt-3 text-xs text-neutral-500">
           Missing integrations fall back to local/demo behavior — the app remains fully usable without them.
         </p>
+      </Card>
+
+      <Card className="p-6">
+        <h2 className="text-lg font-bold">Google Events import</h2>
+        <p className="mt-1 mb-4 text-sm text-neutral-500">
+          Pulls upcoming events for Waco, Austin, Dallas, and Houston from Google Events (via SerpApi) into the
+          moderation queue as unreviewed submissions. Runs automatically once a day; you can also trigger it here.
+        </p>
+        <GoogleEventsSyncButton configured={serpApiConfigured} />
       </Card>
     </div>
   );

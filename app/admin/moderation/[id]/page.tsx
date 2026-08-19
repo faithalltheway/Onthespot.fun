@@ -25,11 +25,29 @@ export default async function ModerationDetailPage({ params }: { params: Promise
   });
   if (!event) notFound();
 
+  const isImported = Boolean(event.externalSource);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-extrabold">{event.title}</h1>
-        <Badge tone="unknown">{event.status.replace("_", " ")}</Badge>
+        <div className="flex items-center gap-2">
+          {isImported && (
+            <Badge tone="accent">
+              Imported from Google Events
+              {event.externalId && (
+                <>
+                  {" "}
+                  ·{" "}
+                  <a href={event.externalId} target="_blank" rel="noreferrer" className="underline">
+                    original listing
+                  </a>
+                </>
+              )}
+            </Badge>
+          )}
+          <Badge tone="unknown">{event.status.replace("_", " ")}</Badge>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1fr_320px]">
@@ -45,7 +63,11 @@ export default async function ModerationDetailPage({ params }: { params: Promise
           <dl className="flex flex-col gap-2 text-sm">
             <div>
               <dt className="font-semibold">Host</dt>
-              <dd>{event.organization?.name ?? event.createdBy.name} ({event.createdBy.email})</dd>
+              <dd>
+                {isImported
+                  ? "Unknown — sourced from Google Events, not submitted by a registered host"
+                  : `${event.organization?.name ?? event.createdBy.name} (${event.createdBy.email})`}
+              </dd>
             </div>
             <div>
               <dt className="font-semibold">When</dt>

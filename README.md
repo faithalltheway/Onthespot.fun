@@ -2,7 +2,7 @@
 
 **OnTheSpot** is an accessibility-first event and activity discovery platform. It helps people find nearby events and activities that match their specific accessibility, mobility, sensory, and accommodation needs — and gives hosts (individuals and organizations) the tools to publish structured, trustworthy accessibility information instead of a paragraph of free text.
 
-This is a full-stack MVP: real database, real authentication, real authorization, a working accessibility matching engine, an interactive map, RSVP/save/follow systems, multi-step event creation wizards, a Partner dashboard with analytics, and an Admin dashboard with a full moderation workflow.
+This is a full-stack MVP: real database, real authentication, real authorization, a working accessibility matching engine, an interactive map, RSVP/save/follow systems, multi-step event creation wizards, a Partner dashboard with analytics, an Admin dashboard with a full moderation workflow, and an automated Google Events import pipeline that feeds new candidate listings into that same moderation queue.
 
 ---
 
@@ -150,7 +150,19 @@ npm run start
 
 **Implemented**: everything in the product brief — auth & onboarding, accessibility matching, discovery + filtering, interactive map with clustering, RSVP/save/follow, community + partner event creation wizards with mandatory structured accessibility data, partner dashboard + analytics (charts, CSV export), full admin dashboard (moderation queue with approve/reject/request-changes, user & partner management, reports queue, revenue, audit log, configurable pricing), Stripe-ready monetization, seed data, and a test suite (unit, integration, and automated accessibility checks via axe).
 
-**Phase 2 recommendations**:
+## 11. Google Events import
+
+`/admin/system` includes a "Google Events import" panel and `/api/cron/import-events` runs it automatically once a day via Vercel Cron (`vercel.json`). It queries [SerpApi's Google Events engine](https://serpapi.com) for Waco/Austin/Dallas/Houston, and for each new result:
+
+- Skips it if already imported (deduped on `(externalSource, externalId)`)
+- Skips it if the date can't be confidently parsed — Google's event dates are loosely formatted text, not machine-readable, and a wrong date is worse than no import
+- Creates it as `PENDING_REVIEW` with **every** accessibility feature set to `UNKNOWN` (never guessed) — it lands in the same moderation queue as any other submission, clearly tagged "Imported from Google Events," and never reaches Discover until a moderator reviews it
+- Attributes it to a dedicated non-login system account (`imports@onthespot.internal`) rather than a real user
+
+Requires `SERPAPI_KEY`; optionally `CRON_SECRET` to authenticate Vercel's scheduled trigger (admins can always trigger a sync manually regardless).
+
+## 12. Phase 2 recommendations
+
 - Real transactional email (verification, password reset, RSVP confirmations) — currently these flows work but surface their links directly in the UI in development instead of sending mail, since no email provider is configured.
 - Real geocoding (the app ships a small static lookup for the four seeded Texas metros; a live geocoder would generalize this to any address).
 - Recurring event instance generation from `recurrenceRule` (currently stored as a plain-language description).

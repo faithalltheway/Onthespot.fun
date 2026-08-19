@@ -43,11 +43,14 @@ export default async function ModerationQueuePage({
                 <div>
                   <p className="font-bold">{event.title}</p>
                   <p className="text-sm text-neutral-500">
-                    {formatDateRange(event.startAt, event.endAt)} · Hosted by{" "}
-                    {event.organization?.name ?? event.createdBy.name}
+                    {formatDateRange(event.startAt, event.endAt)} ·{" "}
+                    {event.externalSource ? "Imported from Google Events" : `Hosted by ${event.organization?.name ?? event.createdBy.name}`}
                   </p>
                 </div>
-                <Badge tone="unknown">{event.accessibility.length} accessibility answers</Badge>
+                <div className="flex items-center gap-2">
+                  {event.externalSource && <Badge tone="accent">Imported</Badge>}
+                  <Badge tone="unknown">{event.accessibility.length} accessibility answers</Badge>
+                </div>
               </Link>
             </li>
           ))}
