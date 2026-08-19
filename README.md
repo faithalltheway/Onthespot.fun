@@ -150,16 +150,18 @@ npm run start
 
 **Implemented**: everything in the product brief — auth & onboarding, accessibility matching, discovery + filtering, interactive map with clustering, RSVP/save/follow, community + partner event creation wizards with mandatory structured accessibility data, partner dashboard + analytics (charts, CSV export), full admin dashboard (moderation queue with approve/reject/request-changes, user & partner management, reports queue, revenue, audit log, configurable pricing), Stripe-ready monetization, seed data, and a test suite (unit, integration, and automated accessibility checks via axe).
 
-## 11. Google Events import
+## 11. Google Events import (built, currently disabled by default)
 
-`/admin/system` includes a "Google Events import" panel and `/api/cron/import-events` runs it automatically once a day via Vercel Cron (`vercel.json`). It queries [SerpApi's Google Events engine](https://serpapi.com) for Waco/Austin/Dallas/Houston, and for each new result:
+`/admin/system` has a "Google Events import" panel that calls `/api/cron/import-events`, which queries [SerpApi's Google Events engine](https://serpapi.com) for Waco/Austin/Dallas/Houston. For each new result it would:
 
-- Skips it if already imported (deduped on `(externalSource, externalId)`)
-- Skips it if the date can't be confidently parsed — Google's event dates are loosely formatted text, not machine-readable, and a wrong date is worse than no import
-- Creates it as `PENDING_REVIEW` with **every** accessibility feature set to `UNKNOWN` (never guessed) — it lands in the same moderation queue as any other submission, clearly tagged "Imported from Google Events," and never reaches Discover until a moderator reviews it
-- Attributes it to a dedicated non-login system account (`imports@onthespot.internal`) rather than a real user
+- Skip it if already imported (deduped on `(externalSource, externalId)`)
+- Skip it if the date can't be confidently parsed — Google's event dates are loosely formatted text, not machine-readable, and a wrong date is worse than no import
+- Create it as `PENDING_REVIEW` with **every** accessibility feature set to `UNKNOWN` (never guessed) — it would land in the same moderation queue as any other submission, clearly tagged "Imported from Google Events," and never reach Discover until a moderator reviews it
+- Attribute it to a dedicated non-login system account (`imports@onthespot.internal`) rather than a real user
 
-Requires `SERPAPI_KEY`; optionally `CRON_SECRET` to authenticate Vercel's scheduled trigger (admins can always trigger a sync manually regardless).
+**Status**: in testing, Google's Events search feature reliably returned zero results for requests from non-residential/proxy IPs — including from a paid SerpApi plan — because that feature depends on fine-grained real-device location signals, not just IP country. There's no automatic (Vercel Cron) trigger configured as a result, to avoid spending API credits on empty responses; the manual "Sync now" button in `/admin/system` is still available if you want to retest later (e.g. with a different provider or a residential-proxy setup). Manual event creation (`/events/create` for community events, `/partner/events/new` for organizations) is the primary way events get added for now.
+
+Requires `SERPAPI_KEY`; optionally `CRON_SECRET` if you re-enable a scheduled trigger later (add a `crons` block back to `vercel.json`).
 
 ## 12. Phase 2 recommendations
 
