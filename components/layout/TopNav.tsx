@@ -3,17 +3,25 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PRIMARY_NAV } from "./nav-items";
 import { Icon } from "@/components/ui/Icon";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { LinkButton } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
+const AUTHENTICATED_PREFIXES = ["/onboarding", "/profile", "/saved", "/rsvps", "/events/create"];
+
 export function TopNav() {
   const pathname = usePathname();
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (status === "unauthenticated" && AUTHENTICATED_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+      void update();
+    }
+  }, [pathname, status, update]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur">
