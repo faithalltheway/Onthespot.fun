@@ -3,6 +3,7 @@
 import { registerSchema } from "@/lib/validations/auth";
 import { registerUser } from "@/services/userService";
 import { signIn } from "@/auth";
+import { redirect } from "next/navigation";
 
 export interface RegisterFormState {
   error?: string;
@@ -39,8 +40,8 @@ export async function registerAction(
   await signIn("credentials", {
     email: parsed.data.email,
     password: parsed.data.password,
-    redirectTo: "/onboarding",
+    redirect: false,
   });
 
-  return {};
+  redirect("/onboarding");
 }
