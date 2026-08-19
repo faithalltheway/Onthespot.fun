@@ -10,7 +10,15 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { LinkButton } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
-const AUTHENTICATED_PREFIXES = ["/onboarding", "/profile", "/saved", "/rsvps", "/events/create"];
+const AUTHENTICATED_PREFIXES = [
+  "/admin",
+  "/partner",
+  "/onboarding",
+  "/profile",
+  "/saved",
+  "/rsvps",
+  "/events/create",
+];
 
 export function TopNav() {
   const pathname = usePathname();
