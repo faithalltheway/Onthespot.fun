@@ -63,6 +63,8 @@ export interface PartnerEventDefaults {
   minAge?: number;
   maxAge?: number;
   coverImageUrl?: string;
+  image2?: string;
+  image3?: string;
   accessibilityContactName?: string;
   accessibilityContactEmail?: string;
   accessibilityContactPhone?: string;
@@ -72,11 +74,17 @@ export interface PartnerEventDefaults {
 export function PartnerEventWizard({
   categories,
   defaults,
+  action = createPartnerEventAction,
+  reviewDescription = "Your listing will be submitted for OnTheSpot moderation. Once approved, you can publish it from your events dashboard.",
+  submitLabel = "Submit for review",
 }: {
   categories: { slug: string; name: string }[];
   defaults?: PartnerEventDefaults;
+  action?: (previousState: PartnerEventState, formData: FormData) => Promise<PartnerEventState>;
+  reviewDescription?: string;
+  submitLabel?: string;
 }) {
-  const [state, formAction, pending] = useActionState(createPartnerEventAction, initialState);
+  const [state, formAction, pending] = useActionState(action, initialState);
   const [step, setStep] = useState(0);
   const [isFree, setIsFree] = useState(defaults?.isFree ?? true);
   const [isRecurring, setIsRecurring] = useState(defaults?.isRecurring ?? false);
@@ -220,16 +228,13 @@ export function PartnerEventWizard({
         <div hidden={step !== 5} className="flex flex-col gap-4">
           <h2 className="text-xl font-bold">Photos</h2>
           <ImageUpload name="coverImageUrl" label="Cover photo" folder="events" defaultValue={defaults?.coverImageUrl} aspect="wide" />
-          <ImageUpload name="image2" label="Additional photo (optional)" folder="events" aspect="wide" />
-          <ImageUpload name="image3" label="Additional photo (optional)" folder="events" aspect="wide" />
+          <ImageUpload name="image2" label="Additional photo (optional)" folder="events" defaultValue={defaults?.image2} aspect="wide" />
+          <ImageUpload name="image3" label="Additional photo (optional)" folder="events" defaultValue={defaults?.image3} aspect="wide" />
         </div>
 
         <div hidden={step !== 6} className="flex flex-col gap-4">
           <h2 className="text-xl font-bold">Review &amp; submit</h2>
-          <p className="text-sm text-neutral-500">
-            Your listing will be submitted for OnTheSpot moderation. Once approved, you can publish it from your
-            events dashboard.
-          </p>
+          <p className="text-sm text-neutral-500">{reviewDescription}</p>
           <label className="flex items-start gap-2 text-sm font-medium">
             <input
               type="checkbox"
@@ -254,7 +259,7 @@ export function PartnerEventWizard({
             </Button>
           ) : (
             <Button type="submit" disabled={pending || !confirmed}>
-              {pending ? "Submitting…" : "Submit for review"}
+              {pending ? "Saving…" : submitLabel}
             </Button>
           )}
         </div>

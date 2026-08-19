@@ -1,14 +1,15 @@
 import { notFound } from "next/navigation";
-import { requireOrganization } from "@/lib/authz";
+import { requireRole } from "@/lib/authz";
 import { db } from "@/lib/db";
 import { toDateTimeLocalValue } from "@/lib/utils";
 import { PartnerEventWizard } from "@/components/events/PartnerEventWizard";
+import { updateAdminEventAction } from "./actions";
 
 export const metadata = { title: "Edit event" };
 
-export default async function EditPartnerEventPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditModeratedEventPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireRole("ADMIN");
   const { id } = await params;
-  const { organization } = await requireOrganization();
 
   const [event, categories] = await Promise.all([
     db.event.findUnique({
@@ -21,22 +22,26 @@ export default async function EditPartnerEventPage({ params }: { params: Promise
     }),
     db.category.findMany({ orderBy: { name: "asc" } }),
   ]);
-
-  if (!event || event.organizationId !== organization.id) notFound();
+  if (!event) notFound();
 
   return (
     <div className="flex flex-col gap-4">
       <div>
         <h1 className="text-2xl font-extrabold">Edit event</h1>
-        <p className="text-sm text-neutral-500">Changes are re-submitted for moderation review.</p>
+        <p className="text-sm text-neutral-500">
+          Complete and verify this listing before making a moderation decision.
+        </p>
       </div>
       <PartnerEventWizard
         categories={categories}
+        action={updateAdminEventAction}
+        reviewDescription="Review the corrected listing and confirm the accessibility information. Saving keeps the event in the moderation queue."
+        submitLabel="Save changes"
         defaults={{
           eventId: event.id,
           title: event.title,
           description: event.description,
-          categories: event.categories.map((c) => c.category.slug),
+          categories: event.categories.map((category) => category.category.slug),
           startAt: toDateTimeLocalValue(event.startAt),
           endAt: toDateTimeLocalValue(event.endAt),
           isRecurring: event.isRecurring,
@@ -60,7 +65,11 @@ export default async function EditPartnerEventPage({ params }: { params: Promise
           accessibilityContactName: event.accessibilityContactName ?? undefined,
           accessibilityContactEmail: event.accessibilityContactEmail ?? undefined,
           accessibilityContactPhone: event.accessibilityContactPhone ?? undefined,
-          accessibilityAnswers: event.accessibility.map((a) => ({ feature: a.feature, state: a.state, note: a.note })),
+          accessibilityAnswers: event.accessibility.map((answer) => ({
+            feature: answer.feature,
+            state: answer.state,
+            note: answer.note,
+          })),
         }}
       />
     </div>

@@ -6,12 +6,20 @@ import { formatDateRange, formatPrice, titleCase } from "@/lib/utils";
 import { AccessibilityBreakdown } from "@/components/events/AccessibilityBreakdown";
 import { Badge } from "@/components/ui/Badge";
 import { ModerationActions } from "./ModerationActions";
+import { LinkButton } from "@/components/ui/Button";
 
 export const metadata = { title: "Review event" };
 
-export default async function ModerationDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ModerationDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ edited?: string }>;
+}) {
   await requireRole("ADMIN");
   const { id } = await params;
+  const { edited } = await searchParams;
 
   const event = await db.event.findUnique({
     where: { id },
@@ -29,6 +37,11 @@ export default async function ModerationDetailPage({ params }: { params: Promise
 
   return (
     <div className="flex flex-col gap-4">
+      {edited === "1" && (
+        <p role="status" className="rounded-control border border-border bg-surface-muted px-4 py-3 text-sm font-medium">
+          Event changes saved. Review the corrected listing before approving it.
+        </p>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-extrabold">{event.title}</h1>
         <div className="flex items-center gap-2">
@@ -108,7 +121,12 @@ export default async function ModerationDetailPage({ params }: { params: Promise
           )}
         </div>
 
-        <ModerationActions eventId={event.id} />
+        <div className="flex flex-col gap-3">
+          <LinkButton href={`/admin/moderation/${event.id}/edit`} variant="outline" className="w-full">
+            Edit event
+          </LinkButton>
+          <ModerationActions eventId={event.id} />
+        </div>
       </div>
     </div>
   );
