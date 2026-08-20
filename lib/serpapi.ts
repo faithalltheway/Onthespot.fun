@@ -2,9 +2,11 @@ import "server-only";
 
 export interface SerpApiEventResult {
   title?: string;
+  type?: string;
   description?: string;
   link?: string;
-  date?: { start_date?: string; when?: string };
+  date?: string | { start_date?: string; when?: string };
+  time?: string;
   address?: string[];
   venue?: { name?: string; phone_number?: string };
   thumbnail?: string;
@@ -20,17 +22,18 @@ interface SerpApiEventsResponse {
 const SERPAPI_BASE = "https://serpapi.com/search.json";
 
 /**
- * Queries SerpApi's Google Events engine for a free-text location query
- * (e.g. "events in Austin, TX"). Google's events data doesn't paginate
- * cleanly for this engine, so this returns whatever a single page yields.
+ * Queries the events pack returned by SerpApi's general Google engine.
+ * The dedicated google_events engine currently returns empty results for
+ * queries that produce an events pack through the general engine.
  */
-export async function fetchGoogleEvents(query: string): Promise<SerpApiEventResult[]> {
+export async function fetchGoogleEvents(query: string, location: string): Promise<SerpApiEventResult[]> {
   const apiKey = process.env.SERPAPI_KEY;
   if (!apiKey) throw new Error("SERPAPI_KEY is not configured");
 
   const url = new URL(SERPAPI_BASE);
-  url.searchParams.set("engine", "google_events");
+  url.searchParams.set("engine", "google");
   url.searchParams.set("q", query);
+  url.searchParams.set("location", location);
   url.searchParams.set("hl", "en");
   url.searchParams.set("gl", "us");
   url.searchParams.set("api_key", apiKey);

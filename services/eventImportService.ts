@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import { db } from "@/lib/db";
 import { fetchGoogleEvents, type SerpApiEventResult } from "@/lib/serpapi";
 import { parseGoogleEventDate } from "@/lib/parseEventDate";
@@ -76,6 +77,30 @@ function jitter(base: number, spreadMiles: number) {
   return base + (Math.random() - 0.5) * 2 * spreadDegrees;
 }
 
+function eventDateParts(result: SerpApiEventResult): { startDate?: string; when?: string } {
+  if (typeof result.date === "string") {
+    return { startDate: result.date, when: result.time };
+  }
+  return { startDate: result.date?.start_date, when: result.date?.when };
+}
+
+function externalEventId(result: SerpApiEventResult, startAt: Date): string {
+  if (result.link) return result.link;
+
+  const { startDate, when } = eventDateParts(result);
+  const fingerprint = [
+    result.title,
+    startAt.getFullYear().toString(),
+    startDate,
+    when,
+    ...(result.address ?? []),
+  ]
+    .map((part) => (part ?? "").trim().toLowerCase())
+    .join("|");
+
+  return `google:${createHash("sha256").update(fingerprint).digest("hex")}`;
+}
+
 export interface ImportSummary {
   city: string;
   fetched: number;
@@ -91,26 +116,33 @@ async function importOneEvent(
   state: string,
   botUserId: string,
 ): Promise<"imported" | "duplicate" | "unparseable" | "invalid"> {
-  if (!result.title || !result.link) return "invalid";
+  if (!result.title) return "invalid";
 
-  const externalId = result.link;
+  const { startDate, when } = eventDateParts(result);
+  const parsedDate = parseGoogleEventDate(startDate, when);
+  if (!parsedDate) return "unparseable";
+
+  const externalId = externalEventId(result, parsedDate.startAt);
   const existing = await db.event.findUnique({
     where: { externalSource_externalId: { externalSource: "GOOGLE_EVENTS", externalId } },
     select: { id: true },
   });
   if (existing) return "duplicate";
 
-  const parsedDate = parseGoogleEventDate(result.date?.start_date, result.date?.when);
-  if (!parsedDate) return "unparseable";
-
   const coords = CITY_COORDINATES[`${city.toLowerCase()},${state.toLowerCase()}`];
   const venueName = result.venue?.name || result.address?.[0] || "Venue TBA";
-  const addressLine1 = result.address?.slice(1).join(", ") || result.address?.[0] || "Address not provided";
-  const description = result.description?.trim() || `Imported from Google Events. See original listing: ${result.link}`;
-  const ticketUrl = result.ticket_info?.[0]?.link ?? result.link;
-  const hasTicketLink = Boolean(result.ticket_info?.length);
+  const cityState = `${city}, ${state}`.toLowerCase();
+  const addressLine1 =
+    result.address
+      ?.slice(1)
+      .filter((part) => part.trim().toLowerCase() !== cityState)
+      .join(", ") || "Address not provided";
+  const description =
+    result.description?.trim() ||
+    `${result.type?.trim() || "Local event"} at ${venueName}. Event details must be verified before approval.`;
+  const ticketUrl = result.ticket_info?.find((ticket) => ticket.link)?.link ?? result.link ?? null;
 
-  const category = guessCategorySlug(result.title, result.description ?? "");
+  const category = guessCategorySlug(result.title, `${result.type ?? ""} ${result.description ?? ""}`);
   const categoryRow = category ? await db.category.findUnique({ where: { slug: category } }) : null;
 
   const slug = await uniqueSlug(result.title);
@@ -134,9 +166,11 @@ async function importOneEvent(
       latitude: coords ? jitter(coords.lat, 1) : 0,
       longitude: coords ? jitter(coords.lng, 1) : 0,
       indoorOutdoor: "INDOOR",
-      isFree: !hasTicketLink,
+      // The general Google events pack does not reliably include pricing.
+      // Missing ticket data must not be interpreted as a free event.
+      isFree: false,
       price: null,
-      ticketUrl: hasTicketLink ? ticketUrl : null,
+      ticketUrl,
       coverImageUrl: result.thumbnail || null,
       categories: categoryRow ? { create: [{ categoryId: categoryRow.id }] } : undefined,
       accessibility: {
@@ -168,7 +202,10 @@ export async function runGoogleEventsImport(): Promise<ImportSummary[]> {
     };
 
     try {
-      const results = await fetchGoogleEvents(`events in ${city}, ${state}`);
+      const results = await fetchGoogleEvents(
+        `events in ${city}`,
+        `${city}, ${state === "TX" ? "Texas" : state}, United States`,
+      );
       summary.fetched = results.length;
 
       for (const result of results) {

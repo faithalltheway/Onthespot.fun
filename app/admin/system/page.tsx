@@ -52,9 +52,9 @@ export default async function AdminSystemPage() {
       <Card className="p-6">
         <h2 className="text-lg font-bold">Google Events import</h2>
         <p className="mt-1 mb-4 text-sm text-neutral-500">
-          Pulls upcoming events for Waco, Austin, Dallas, and Houston from Google Events (via SerpApi) into the
-          moderation queue as unreviewed submissions. Currently disabled on a schedule — Google&apos;s Events feature
-          doesn&apos;t reliably return results for non-residential IPs, so results may be empty. Manual trigger only.
+          Pulls upcoming events for Waco, Austin, Dallas, and Houston from Google Search (via SerpApi) into the
+          moderation queue as unreviewed leads. Imported details, pricing, and accessibility must be verified before
+          approval. Manual trigger only.
         </p>
         <GoogleEventsSyncButton configured={serpApiConfigured} />
       </Card>

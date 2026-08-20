@@ -34,6 +34,7 @@ export default async function ModerationDetailPage({
   if (!event) notFound();
 
   const isImported = Boolean(event.externalSource);
+  const originalListingUrl = event.externalId?.startsWith("http") ? event.externalId : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -48,11 +49,11 @@ export default async function ModerationDetailPage({
           {isImported && (
             <Badge tone="accent">
               Imported from Google Events
-              {event.externalId && (
+              {originalListingUrl && (
                 <>
                   {" "}
                   ·{" "}
-                  <a href={event.externalId} target="_blank" rel="noreferrer" className="underline">
+                  <a href={originalListingUrl} target="_blank" rel="noreferrer" className="underline">
                     original listing
                   </a>
                 </>
@@ -95,7 +96,11 @@ export default async function ModerationDetailPage({
             </div>
             <div>
               <dt className="font-semibold">Price</dt>
-              <dd>{formatPrice(event.isFree, event.price?.toString())}</dd>
+              <dd>
+                {isImported && !event.isFree && !event.price && !event.ticketUrl
+                  ? "Unknown — verify before approval"
+                  : formatPrice(event.isFree, event.price?.toString())}
+              </dd>
             </div>
             <div>
               <dt className="font-semibold">Categories</dt>

@@ -152,14 +152,14 @@ npm run start
 
 ## 11. Google Events import (built, currently disabled by default)
 
-`/admin/system` has a "Google Events import" panel that calls `/api/cron/import-events`, which queries [SerpApi's Google Events engine](https://serpapi.com) for Waco/Austin/Dallas/Houston. For each new result it would:
+`/admin/system` has a "Google Events import" panel that calls `/api/cron/import-events`, which queries the events pack from [SerpApi's Google Search API](https://serpapi.com/search-api) for Waco/Austin/Dallas/Houston. For each new result it will:
 
 - Skip it if already imported (deduped on `(externalSource, externalId)`)
 - Skip it if the date can't be confidently parsed — Google's event dates are loosely formatted text, not machine-readable, and a wrong date is worse than no import
 - Create it as `PENDING_REVIEW` with **every** accessibility feature set to `UNKNOWN` (never guessed) — it would land in the same moderation queue as any other submission, clearly tagged "Imported from Google Events," and never reach Discover until a moderator reviews it
 - Attribute it to a dedicated non-login system account (`imports@onthespot.internal`) rather than a real user
 
-**Status**: in testing, Google's Events search feature reliably returned zero results for requests from non-residential/proxy IPs — including from a paid SerpApi plan — because that feature depends on fine-grained real-device location signals, not just IP country. There's no automatic (Vercel Cron) trigger configured as a result, to avoid spending API credits on empty responses; the manual "Sync now" button in `/admin/system` is still available if you want to retest later (e.g. with a different provider or a residential-proxy setup). Manual event creation (`/events/create` for community events, `/partner/events/new` for organizations) is the primary way events get added for now.
+**Status**: live testing showed that SerpApi's dedicated `google_events` engine returned zero results, while its general `google` engine returned the current Google events pack when given an explicit city-level location. The importer now uses that working path. These results are discovery leads: Google may omit an official link, street address, pricing, description, and all accessibility details. Every import therefore remains `PENDING_REVIEW`, missing accessibility stays `UNKNOWN`, and an administrator must edit and verify the listing before approval. There is no automatic Vercel Cron trigger configured; imports are started manually from `/admin/system` to control API usage and review volume.
 
 Requires `SERPAPI_KEY`; optionally `CRON_SECRET` if you re-enable a scheduled trigger later (add a `crons` block back to `vercel.json`).
 

@@ -22,6 +22,15 @@ describe("parseGoogleEventDate", () => {
     expect(result!.endAt.getTime() - result!.startAt.getTime()).toBe(2 * 60 * 60 * 1000);
   });
 
+  it("parses the separate date and time strings returned by Google's general events pack", () => {
+    const result = parseGoogleEventDate("Aug 19", "6:00 PM");
+    expect(result).not.toBeNull();
+    expect(result!.startAt.getMonth()).toBe(7);
+    expect(result!.startAt.getDate()).toBe(19);
+    expect(result!.startAt.getHours()).toBe(18);
+    expect(result!.endAt.getTime() - result!.startAt.getTime()).toBe(2 * 60 * 60 * 1000);
+  });
+
   it("never produces an end time before the start time", () => {
     const result = parseGoogleEventDate("Oct 1", "Wed, Oct 1, 11 PM – 1 AM");
     expect(result).not.toBeNull();
